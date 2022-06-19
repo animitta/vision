@@ -1,0 +1,12 @@
+﻿{
+  "profiles": {
+    "client": {
+      "launchBrowser": true,
+      "commandName": "Project",
+      "applicationUrl": "http://0.0.0.0:21806/",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
