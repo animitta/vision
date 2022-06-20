@@ -14,15 +14,12 @@ public class VisionProxyModule : AbpModule
 {
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
-        //var configuration = context.Services.GetConfiguration();
-        //var hostingEnvironment = context.Services.GetHostingEnvironment();
-
         context.Services.AddSignalR(options =>
         {
-            // 最大的单个消息10MB
+            // 最大的单个消息 10MB
+            options.StreamBufferCapacity = 10 * 1024 * 1024;
             options.MaximumReceiveMessageSize = 10 * 1024 * 1024;
         });
-
     }
 
     public override void OnApplicationInitialization(ApplicationInitializationContext context)

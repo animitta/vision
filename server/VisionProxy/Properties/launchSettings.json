@@ -1,6 +1,6 @@
 ﻿{
   "profiles": {
-    "client": {
+    "VisionProxy": {
       "launchBrowser": true,
       "commandName": "Project",
       "applicationUrl": "http://0.0.0.0:21806/",

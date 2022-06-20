@@ -1,11 +1,6 @@
-"""
-    Visualization utils.
-    Modified based on ref: [https://github.com/open-mmlab/OpenPCDet/blob/master/tools/visual_utils/visualize_utils.py]
-"""
-
+import torch
 import numpy as np
 import mayavi.mlab as mlab
-import torch
 
 box_colormap = [
     [1, 1, 1],  # car
