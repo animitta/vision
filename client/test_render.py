@@ -1,8 +1,9 @@
-import base64
 import time
+import base64
+import queue
 import numpy as np
 from signalrclient import SignalRClient
-from multiprocessing import Process
+from multiprocessing import Process, Manager
 
 import torch
 import torchvision
@@ -37,7 +38,7 @@ def visualize_point_cloud(point_cloud, color=None, gt_3dbox=None, pred_3dbox=Non
         mlab.savefig(save_name)
         mlab.close()
     else:
-        return fig
+        return mlab
 
 
 def display_plotting(fig, azimuth=-179, elevation=70.0, distance=85.0,
@@ -101,26 +102,38 @@ def inv_norm_image(image):
     return invTrans(image)
 
 
-def read_point_cloud(path):
-    return np.fromfile(path, dtype=np.float32).reshape(-1, 4)  # (N, 3)
+def start_signalr(queue):
+    def handlee(package):
+        if queue.full():
+            print('[signalr]: 等待原来的消息被消费, 当前接受数据被抛弃!!!')
+        else:
+            print('[signalr]: 消费队列为空, 正在压入数据,等待渲染线程获取数据...')
+            queue.put_nowait(package[0])
+            queue.put_nowait(package[1])
+
+    print('[signalr]: 启动通讯监听')
+    with SignalRClient(handlee):
+        while True:
+            time.sleep(1)
 
 
-def handle_message(message):
-    global render
-    method = message[0]
-    arguments = base64.b64decode(message[1])
-    print(f'>> 接受渲染:{method}, 参数大小:{len(arguments)}')
-    render = True
-    # clouds = np.frombuffer(arguments, dtype=np.float32).reshape(-1, 4)
-    # visualize_point_cloud(clouds[:, :3], point_size=0.01)
+def render_vision():
+    method = queue.get(block=True)
+    arguments = queue.get(block=True)
+    print('>> 正在启动一个新的mayavi窗口')
+
+    buffer = base64.b64decode(arguments)
+    clouds = np.frombuffer(buffer, dtype=np.float32).reshape(-1, 4)[:, :3]
+    mlab = visualize_point_cloud(clouds[:300], point_size=0.1)
+    return mlab
 
 
 if __name__ == '__main__':
-    print('准备启动连接')
-    with SignalRClient(handle_message):
-        print('准备渲染图像')
-        clouds = read_point_cloud('data/pc.bin')[:, :3]
-        fig = visualize_point_cloud(clouds, point_size=0.01)
+    queue = Manager().Queue(2)
+    p = Process(target=start_signalr, args=(queue,))
+    p.start()
 
-        while True:
-            time.sleep(1)
+    while True:
+        mlab = render_vision()
+        input('>> 渲染请求已完成,请不要手动关闭窗口, 输入任意键开始接受下一次请求,当前mlab窗口将被关闭\n')
+        mlab.close()
