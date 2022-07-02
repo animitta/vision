@@ -2,6 +2,8 @@ import time
 import base64
 import queue
 import numpy as np
+
+from datetime import datetime
 from signalrclient import SignalRClient
 from multiprocessing import Process, Manager
 
@@ -12,9 +14,6 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from mayavi import mlab
 from utils import draw_bbox, draw_colored_pointcloud
-
-render = False
-
 
 def visualize_point_cloud(point_cloud, color=None, gt_3dbox=None, pred_3dbox=None, scores=None, labels=None, point_size=0.05, save_name=None):
     # point_cloud: (N, 3), color: (N, 3), gt_3dbox: (7, ), pred_3dbox: (7, )
@@ -102,17 +101,19 @@ def inv_norm_image(image):
     return invTrans(image)
 
 
+# 这个进程帮我们接受数据, 是数据的提供者
 def start_signalr(queue):
-    def handlee(package):
+    def handle(package):
+        recvied_time = datetime.now()
         if queue.full():
-            print('[signalr]: 等待原来的消息被消费, 当前接受数据被抛弃!!!')
+            print(f'[signalr] - [{recvied_time}]: 等待原来的消息被消费, 当前接受数据被抛弃')
         else:
-            print('[signalr]: 消费队列为空, 正在压入数据,等待渲染线程获取数据...')
+            print(f'[signalr] - [{recvied_time}]: 消费队列未蛮, 正在压入数据,等待渲染线程获取数据...')
             queue.put_nowait(package[0])
             queue.put_nowait(package[1])
 
     print('[signalr]: 启动通讯监听')
-    with SignalRClient(handlee):
+    with SignalRClient(handle):
         while True:
             time.sleep(1)
 
@@ -124,16 +125,25 @@ def render_vision():
 
     buffer = base64.b64decode(arguments)
     clouds = np.frombuffer(buffer, dtype=np.float32).reshape(-1, 4)[:, :3]
-    mlab = visualize_point_cloud(clouds[:300], point_size=0.1)
+    mlab = visualize_point_cloud(clouds, point_size=0.02)
     return mlab
 
 
 if __name__ == '__main__':
-    queue = Manager().Queue(2)
+    # 多进程队列
+    queue = Manager().Queue(100)
     p = Process(target=start_signalr, args=(queue,))
     p.start()
 
     while True:
         mlab = render_vision()
-        input('>> 渲染请求已完成,请不要手动关闭窗口, 输入任意键开始接受下一次请求,当前mlab窗口将被关闭\n')
-        mlab.close()
+        flag = input('>> 渲染完成,输入回车绘制下一个请求,输入e结束程序\n')
+        print(flag)
+
+        try:
+            mlab.close()
+        except:
+            pass
+        if flag == 'e':
+            break
+    p.terminate()

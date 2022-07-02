@@ -1,10 +1,9 @@
 import logging
 from signalrcore.hub_connection_builder import HubConnectionBuilder
-# from signalrcore.protocol.messagepack_protocol import MessagePackHubProtocol
 
 class SignalRClient:
     def __init__(self, handler, url=None):
-        url = url or 'http://127.0.0.1:21806/hubs/vision'  # wss
+        url = 'http://119.29.142.116:21806/hubs/vision'  # wss
 
         # .with_hub_protocol(MessagePackHubProtocol())\
         connection = HubConnectionBuilder()\
