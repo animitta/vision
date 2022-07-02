@@ -57,10 +57,9 @@ if __name__ == '__main__':
     color = np.repeat(np.array([0.8, 0.1, 0.1]), 3000, 0)
 
     start()
+
     time.sleep(5)
-
     send('visualize_point_cloud', point_cloud=point_cloud, color = color)
-    # send('visualize_point_cloud', point_cloud=point_cloud)
-
     time.sleep(10)
+
     close()
