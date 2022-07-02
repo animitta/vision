@@ -221,7 +221,7 @@ def draw_scenes(points, gt_boxes=None, ref_boxes=None, ref_scores=None, ref_labe
               roll=90.0, focalpoint=(35, 0, 0))
     return fig
 
-def draw_colored_pointcloud(points, fig=None, bgcolor=(0.0, 0.0, 0.0), fgcolor=(1.0, 1.0, 1.0),
+def draw_colored_pointcloud(points, fig=None, bgcolor=(1.0, 1.0, 1.0), fgcolor=(0.0, 1.0, 0.0),
                   show_intensity=False, size=(600, 600), draw_origin=True, colors=None, point_size=0.05, draw_grid=True):
     if not isinstance(points, np.ndarray):
         points = points.cpu().numpy()

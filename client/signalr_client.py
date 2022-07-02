@@ -3,7 +3,8 @@ from signalrcore.hub_connection_builder import HubConnectionBuilder
 
 class SignalRClient:
     def __init__(self, handler, url=None):
-        url = 'http://119.29.142.116:21806/hubs/vision'  # wss
+        # url = 'http://119.29.142.116:21806/hubs/vision'
+        url = 'http://127.0.0.1:21806/hubs/vision'
 
         # .with_hub_protocol(MessagePackHubProtocol())\
         connection = HubConnectionBuilder()\
@@ -27,6 +28,12 @@ class SignalRClient:
     def __exit__(self, types, values, trace):
         if self.connection:
             self.connection.stop()
+
+    def start(self):
+        self.__enter__()
+
+    def close(self):
+        self.__exit__(None, None, None)
 
     def on_opened():
         print(">> SignalR 连接成功!")

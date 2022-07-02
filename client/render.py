@@ -1,10 +1,12 @@
 import time
-import base64
 import queue
+import torch
+import base64
 import numpy as np
 
+from io import BytesIO
 from datetime import datetime
-from signalrclient import SignalRClient
+from signalr_client import SignalRClient
 from multiprocessing import Process, Manager
 
 import torch
@@ -108,7 +110,7 @@ def start_signalr(queue):
         if queue.full():
             print(f'[signalr] - [{recvied_time}]: 等待原来的消息被消费, 当前接受数据被抛弃')
         else:
-            print(f'[signalr] - [{recvied_time}]: 消费队列未蛮, 正在压入数据,等待渲染线程获取数据...')
+            print(f'[signalr] - [{recvied_time}]: 消费队列未满, 正在压入数据,等待渲染线程获取数据...')
             queue.put_nowait(package[0])
             queue.put_nowait(package[1])
 
@@ -121,15 +123,26 @@ def start_signalr(queue):
 def render_vision():
     method = queue.get(block=True)
     arguments = queue.get(block=True)
-    print('>> 正在启动一个新的mayavi窗口')
 
-    buffer = base64.b64decode(arguments)
-    clouds = np.frombuffer(buffer, dtype=np.float32).reshape(-1, 4)[:, :3]
-    mlab = visualize_point_cloud(clouds, point_size=0.02)
-    return mlab
+    buffer = BytesIO(base64.b64decode(arguments))
+    if method in renderers:
+        print('>> 正在启动一个新的mayavi窗口')
+        args = torch.load(buffer)
+        renderer = renderers[method]
+        return renderer(**args)
+    else:
+        print(f'>> 服务器请求了一个渲染,但当前无法理解此渲染方法: {method}')
+        return None
 
 
 if __name__ == '__main__':
+    renderers = {
+        inv_norm_image.__name__: inv_norm_image,
+        display_plotting.__name__: display_plotting,
+        visualize_object_3d.__name__: visualize_object_3d,
+        visualize_point_cloud.__name__: visualize_point_cloud
+    }
+
     # 多进程队列
     queue = Manager().Queue(100)
     p = Process(target=start_signalr, args=(queue,))
@@ -138,12 +151,14 @@ if __name__ == '__main__':
     while True:
         mlab = render_vision()
         flag = input('>> 渲染完成,输入回车绘制下一个请求,输入e结束程序\n')
-        print(flag)
 
-        try:
-            mlab.close()
-        except:
-            pass
+        if mlab!=None:
+            try:
+                mlab.close()
+            except:
+                pass
         if flag == 'e':
             break
+
     p.terminate()
+ 
